@@ -1,0 +1,50 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Rust
+agent/target/
+**/target/
+Cargo.lock.bak
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Local runtime databases, spools, and quarantine vaults
+.local-data/
+data/edr-local.sqlite3*
+data/agent-spool.sqlite3*
+quarantine/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+logs/
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

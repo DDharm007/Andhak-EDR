@@ -194,3 +194,34 @@
 ### 4. Handoff Summary -> Ready for Stage 06
 - **Stage 05 Gate Passed:** Authenticated RBAC, target safety, approval gates, quarantine vault + restore, isolation rollback, tamper-evident audit chain, and live Rust response execution verified.
 - **Stage 06 Next Steps:** Implement backend WebSockets (`/ws/telemetry`, `/ws/alerts`, `/ws/responses`), `asyncio` event bus, fleet `/api/v1/overview` + `/api/v1/endpoints/{id}` detail views, HMAC-authenticated ANDHAK SOC Bridge (`/api/v1/soc-bridge/*`) + non-destructive SOC integration test, and full 12-view React/TS/Tailwind/Recharts/React Flow console matching `#101114`/`#A92532` and pulled `andhak-logo.png`.
+
+---
+
+## Stage 06 — SOC Integration & Frontend Development
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **Realtime Event Bus & WebSockets (`backend/app/realtime/bus.py`, `routers/ws.py`):**
+   - Implemented thread-safe in-process `asyncio` fan-out pub/sub (`telemetry`, `alerts`, `responses`) wired into ingestion, detection scoring, incident correlation, and response state transitions (`loop.call_soon_threadsafe` delivery with query filters `endpoint_id`, `origin`, `ping`/`pong` keepalives, and bounded queue backpressure).
+2. **Fleet Overview & Deep Endpoint Views (`backend/app/routers/fleet.py`):**
+   - Exposed `/api/v1/overview` (KPIs, severity/source breakdowns, top MITRE techniques, origin telemetry counts, WS subscriber counts) and `/api/v1/endpoints/{endpoint_id}` (processes, live sockets, FIM baselines/events, alerts, responses, quarantine items).
+3. **ANDHAK SOC HMAC Bridge (`backend/app/soc_bridge/bridge.py`, `routers/soc_bridge.py`):**
+   - Implemented contract-compliant `edr-*` SOC event export, bidirectional IOC sync (`ip`, `domain`, `url`, `file_hash`) across `/api/v1/intelligence/indicators`, and HMAC-SHA256 + timestamp replay-protected `POST /api/v1/soc-bridge/responses/request` honoring EDR RBAC approval + protected target denylists + honest `501` for `revoke_session`, without modifying standalone `Andhak SOC`.
+4. **12-View React + TypeScript + Tailwind + Recharts + React Flow Console (`frontend/src/`):**
+   - Built accessible tactical dark UI (`#101114` / `#17181D` / `#A92532` / `#D63A46`, `Inter` + `IBM Plex Mono`, pulled `andhak-logo.png`, native `<dialog>` confirmation, responsive tables, explicit `REAL TELEMETRY` / `RECORDED DEMO` / `TEST FIXTURE` badges, zero AI copy) covering Overview, Endpoints, Endpoint Details, Live Telemetry, Detection Center, Integrity Monitor, Malware Analysis, Threat Hunting, Attack Graph, Deterministic Investigation, Response Center, and Agents & SOC.
+
+### 2. Bugs Discovered & Resolved During Stage 06
+- **`Subscriber` Hashability:** `@dataclass` without `eq=False` deleted `__hash__`, raising `TypeError` on `set.add` in `EventBus.subscribe`. Fixed with `@dataclass(eq=False)`.
+- **RFC 5737 TEST-NET-2 IP Check:** Python 3.12's `ip.is_private` classified documentation IP `198.51.100.44` as private in `bridge._is_public_ip`; updated to explicit RFC 1918/ULA filtering.
+
+### 3. Tests Executed & Results
+- `frontend` `npm run build` (`tsc -b && vite build`): **PASS** (`0` TS errors, bundle built in `5.63s`)
+- `frontend` `npm test` (`vitest run`): **PASS** (`3/3` UI component, origin-badge, navigation, and offline-error tests)
+- `backend\.venv\Scripts\ruff.exe format --check` & `ruff check`: **PASS** (`47` files formatted, `All checks passed!`)
+- `backend\.venv\Scripts\python.exe -m pytest backend\tests -v`: **PASS** (`12/12` passed in `37.35s`, covering live WebSockets, fleet overview/endpoint detail, SOC event/IOC sync, HMAC validation, plus Stages 02–05 E2E tests).
+
+### 4. Handoff Summary -> Ready for Stage 07
+- **Stage 06 Gate Passed:** Live WebSockets, fleet API, ANDHAK SOC HMAC bridge, and full 12-view React console verified end-to-end.
+- **Stage 07 Next Steps:** Implement public read-only demo replay dataset seeded from sanitized workstation telemetry (`ANDHAK_DEMO_MODE=true`), Dockerfiles + `docker-compose.yml` + GitHub Actions CI, capture all 12 real Playwright console screenshots (`docs/assets/screenshots/`), author comprehensive annotated `README.md`, `docs/PORTFOLIO.md`, run final security/link/all-suite audits, and tag/push `v1.0.0`.

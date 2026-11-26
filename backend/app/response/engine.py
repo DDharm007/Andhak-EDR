@@ -9,6 +9,7 @@ from typing import Any
 
 from app.config import Settings
 from app.db import get_connection, utc_now_iso
+from app.realtime.bus import event_bus
 from app.response.audit import append_audit_log
 from app.response.safety import ProtectedTargetError, validate_response_target
 
@@ -105,7 +106,12 @@ def propose_response_action(
             "SELECT * FROM response_actions WHERE action_id = ?",
             (action_id,),
         ).fetchone()
-    return _format_action(row)
+    formatted = _format_action(row)
+    event_bus.publish_sync(
+        "responses",
+        {"type": "response.pending", "endpoint_id": endpoint_id, "data": formatted},
+    )
+    return formatted
 
 
 def decide_response_action(
@@ -165,7 +171,16 @@ def decide_response_action(
             "SELECT * FROM response_actions WHERE action_id = ?",
             (action_id,),
         ).fetchone()
-    return _format_action(updated)
+    formatted = _format_action(updated)
+    event_bus.publish_sync(
+        "responses",
+        {
+            "type": f"response.{new_status}",
+            "endpoint_id": formatted["endpoint_id"],
+            "data": formatted,
+        },
+    )
+    return formatted
 
 
 def initiate_rollback(
@@ -412,7 +427,16 @@ def ack_agent_command(
             "SELECT * FROM response_actions WHERE action_id = ?",
             (action_id,),
         ).fetchone()
-    return _format_action(updated)
+    formatted = _format_action(updated)
+    event_bus.publish_sync(
+        "responses",
+        {
+            "type": f"response.{formatted['status']}",
+            "endpoint_id": formatted["endpoint_id"],
+            "data": formatted,
+        },
+    )
+    return formatted
 
 
 def list_response_actions(

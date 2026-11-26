@@ -11,6 +11,7 @@ from typing import Any
 
 from app.config import Settings
 from app.db import get_connection, utc_now_iso
+from app.realtime.bus import event_bus
 
 SEVERITY_BASE_SCORE = {
     "critical": 90,
@@ -159,6 +160,26 @@ def persist_alert_conn(
             rec["detected_at"],
             rec["telemetry_origin"],
         ),
+    )
+    event_bus.publish_sync(
+        "alerts",
+        {
+            "type": "alert.created",
+            "origin": rec["telemetry_origin"],
+            "endpoint_id": rec["endpoint_id"],
+            "data": {
+                "alert_id": rec["alert_id"],
+                "endpoint_id": rec["endpoint_id"],
+                "rule_id": rec["rule_id"],
+                "rule_name": rec["rule_name"],
+                "detection_source": rec["detection_source"],
+                "severity": rec["severity"],
+                "confidence": rec["confidence"],
+                "risk_score": rec["risk_score"],
+                "detected_at": rec["detected_at"],
+                "telemetry_origin": rec["telemetry_origin"],
+            },
+        },
     )
     return rec
 

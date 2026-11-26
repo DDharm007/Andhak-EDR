@@ -1,0 +1,236 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@xyflow/react/dist/style.css";
+
+:root {
+  color-scheme: dark;
+  --bg-primary: #101114;
+  --bg-secondary: #17181d;
+  --bg-elevated: #1d1e24;
+  --border-subtle: #303139;
+  --accent-red: #a92532;
+  --accent-critical: #d63a46;
+  --accent-warn: #f59e0b;
+  --accent-ok: #10b981;
+  --text-primary: #e8e7e3;
+  --text-muted: #9a9ca6;
+  --scrollbar-thumb: #464854;
+  --scrollbar-track: #17181d;
+
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  accent-color: var(--accent-red);
+}
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.font-mono,
+code,
+pre,
+.mono {
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace;
+}
+
+::selection {
+  background-color: #a92532;
+  color: #ffffff;
+}
+
+:where(a:any-link, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #d63a46;
+  outline-offset: 2px;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  background: #a92532;
+  color: #ffffff;
+  padding: 0.5rem 0.875rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Brand image blending aligned with ANDHAK SOC */
+.brand-mark-img {
+  mix-blend-mode: screen;
+  filter: contrast(1.06) brightness(1.02);
+}
+
+/* Accessible responsive table wrapper & sticky column headers */
+.table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(560px, 68vh);
+  container-type: inline-size;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background-color: var(--bg-secondary);
+}
+
+.edr-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.edr-table caption {
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.edr-table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: #1a1b21;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.edr-table tbody td,
+.edr-table tbody th {
+  padding: 0.575rem 0.75rem;
+  border-bottom: 1px solid #24262e;
+  vertical-align: top;
+}
+
+.edr-table tbody tr:hover {
+  background-color: rgba(169, 37, 50, 0.08);
+}
+
+@container (width < 560px) {
+  .edr-table,
+  .edr-table thead,
+  .edr-table tbody,
+  .edr-table tr,
+  .edr-table th,
+  .edr-table td {
+    display: block;
+  }
+  .edr-table thead {
+    display: none;
+  }
+  .edr-table tbody tr {
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-subtle);
+  }
+  .edr-table tbody td::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+}
+
+/* Native top-layer modal dialog rules (modern-web-guidance) */
+dialog.edr-dialog:modal {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: min(34rem, 92vw);
+  width: 100%;
+  margin: auto;
+  overscroll-behavior: contain;
+}
+
+dialog.edr-dialog::backdrop {
+  background: rgba(6, 7, 10, 0.8);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Form validation after interaction only (:user-invalid) */
+.edr-input:user-invalid {
+  border-color: var(--accent-critical);
+}
+
+.edr-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  min-height: 40px;
+}
+
+/* React Flow tactical dark overrides */
+.react-flow__controls button {
+  background-color: #1d1e24 !important;
+  color: #e8e7e3 !important;
+  border-bottom: 1px solid #303139 !important;
+}
+.react-flow__minimap {
+  background-color: #101114 !important;
+  border: 1px solid #303139;
+}
+
+@media (forced-colors: active) {
+  .edr-panel,
+  .table-wrapper,
+  dialog.edr-dialog {
+    border: 1px solid CanvasText;
+  }
+  button {
+    border: 1px solid ButtonText;
+  }
+}

@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.config import get_settings
@@ -13,9 +14,12 @@ from app.db import init_database
 from app.routers.agent import router as agent_router
 from app.routers.auth import router as auth_router
 from app.routers.detections import router as detections_router
+from app.routers.fleet import router as fleet_router
 from app.routers.forensics import router as forensics_router
 from app.routers.policies import router as policies_router
 from app.routers.responses import router as responses_router
+from app.routers.soc_bridge import router as soc_bridge_router
+from app.routers.ws import router as ws_router
 from app.services.ingest import list_endpoints, list_telemetry_events
 
 
@@ -34,12 +38,22 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(auth_router)
 app.include_router(agent_router)
+app.include_router(fleet_router)
 app.include_router(detections_router)
 app.include_router(forensics_router)
 app.include_router(responses_router)
 app.include_router(policies_router)
+app.include_router(soc_bridge_router)
+app.include_router(ws_router)
 
 
 @app.get("/api/v1/health")
@@ -64,7 +78,13 @@ def endpoints() -> dict[str, Any]:
 def telemetry_events(
     endpoint_id: str | None = None,
     category: str | None = None,
+    severity: str | None = None,
+    origin: str | None = None,
     limit: int = Query(default=100, ge=1, le=500),
 ) -> dict[str, Any]:
     items = list_telemetry_events(endpoint_id=endpoint_id, category=category, limit=limit)
+    if severity:
+        items = [i for i in items if i.get("severity") == severity]
+    if origin:
+        items = [i for i in items if i.get("telemetry_origin") == origin]
     return {"items": items, "total": len(items)}

@@ -16,6 +16,7 @@ from app.config import Settings, get_settings
 from app.db import DEFAULT_POLICY_ID, get_connection, hash_secret, utc_now_iso
 from app.detection.pipeline import evaluate_ingested_event
 from app.forensics.correlator import correlate_alerts_for_endpoint
+from app.realtime.bus import event_bus
 from app.schemas import (
     EnrollmentRequest,
     HeartbeatRequest,
@@ -294,12 +295,14 @@ def ingest_telemetry_batch(
     accepted = 0
     duplicate_skipped = 0
     alerts_emitted = 0
+    published_events: list[TelemetryEventIn] = []
 
     with get_connection(cfg) as conn:
         for evt in batch.events:
             inserted = _insert_telemetry_event(conn, endpoint_id, evt, ingested_at)
             if inserted:
                 accepted += 1
+                published_events.append(evt)
                 alerts_emitted += len(evaluate_ingested_event(conn, endpoint_id, evt))
             else:
                 duplicate_skipped += 1
@@ -308,6 +311,17 @@ def ingest_telemetry_batch(
         conn.execute(
             "UPDATE endpoints SET last_heartbeat_at = ? WHERE endpoint_id = ?",
             (ingested_at, endpoint_id),
+        )
+
+    for evt in published_events:
+        event_bus.publish_sync(
+            "telemetry",
+            {
+                "type": "telemetry.event",
+                "origin": evt.telemetry_origin,
+                "endpoint_id": endpoint_id,
+                "data": evt.model_dump(mode="json", exclude_none=True),
+            },
         )
 
     return {

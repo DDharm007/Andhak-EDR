@@ -11,6 +11,7 @@ from typing import Any
 from app.config import Settings
 from app.db import get_connection
 from app.detection.scoring import SEVERITY_BASE_SCORE, compute_risk_score
+from app.realtime.bus import event_bus
 
 SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
@@ -139,7 +140,18 @@ def correlate_alerts_for_endpoint(
                 ).fetchone()
             )
 
-    return [_format_incident(inc) for inc in touched_incidents.values()]
+    formatted = [_format_incident(inc) for inc in touched_incidents.values()]
+    for inc in formatted:
+        event_bus.publish_sync(
+            "alerts",
+            {
+                "type": "incident.updated",
+                "origin": inc["telemetry_origin"],
+                "endpoint_id": inc["endpoint_id"],
+                "data": inc,
+            },
+        )
+    return formatted
 
 
 def _recompute_incident_aggregates(

@@ -22,7 +22,16 @@ class Settings(BaseSettings):
     edr_env: str = Field(default="development", alias="ANDHAK_EDR_ENV")
     host: str = Field(default="127.0.0.1", alias="ANDHAK_EDR_HOST")
     port: int = Field(default=8010, alias="ANDHAK_EDR_PORT")
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://127.0.0.1:5174",
+            "http://localhost:5174",
+            "http://127.0.0.1:5173",
+        ],
+        alias="ANDHAK_EDR_CORS_ORIGINS",
+    )
     demo_mode: bool = Field(default=False, alias="ANDHAK_DEMO_MODE")
+    redis_url: str | None = Field(default=None, alias="ANDHAK_EDR_REDIS_URL")
 
     data_dir: Path = Field(
         default_factory=lambda: _repo_root() / ".local-data",
@@ -67,6 +76,14 @@ class Settings(BaseSettings):
     abuseipdb_api_key: str | None = Field(default=None, alias="ABUSEIPDB_API_KEY")
     virustotal_api_key: str | None = Field(default=None, alias="VIRUSTOTAL_API_KEY")
     ember_model_path: Path | None = Field(default=None, alias="ANDHAK_EMBER_MODEL_PATH")
+
+    # Stage 06 ANDHAK SOC Bridge settings
+    soc_enabled: bool = Field(default=True, alias="ANDHAK_SOC_ENABLED")
+    soc_base_url: str = Field(default="http://127.0.0.1:8000", alias="ANDHAK_SOC_BASE_URL")
+    soc_bridge_secret: str = Field(
+        default="local-edr-soc-bridge-dev-secret-change-in-prod",
+        alias="ANDHAK_SOC_BRIDGE_SHARED_SECRET",
+    )
 
     @property
     def resolved_db_path(self) -> Path:

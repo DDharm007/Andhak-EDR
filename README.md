@@ -1,6 +1,7 @@
 <div align="center">
-  <img src="docs/assets/andhak-logo.png" alt="ANDHAK Logo" width="120" />
-  <h1>ANDHAK EDR</h1>
+  <a href="https://github.com/DDharm007/Andhak-EDR">
+    <img src="docs/assets/andhak-banner-animated.svg" alt="ANDHAK EDR — Detect. Investigate. Respond." width="100%" />
+  </a>
   <p><strong>Detect. Investigate. Respond.</strong></p>
   <p>Modular Rust Endpoint Sensor · Deterministic Multi-Engine Detection · SHA-256 Forensics · Controlled Containment · ANDHAK SOC Bridge</p>
 </div>

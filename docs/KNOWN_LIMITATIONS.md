@@ -29,9 +29,11 @@ This file tracks verified environment constraints, architectural scope adjustmen
 - **No Identity Provider Connector (`revoke_session`):** Unless an external IdP connector is explicitly configured in future roadmaps, identity session revocation cannot execute against local standalone Windows accounts and remains unsupported/explicitly reported.
 - **Single-Host Lab Validation Scope (Stages 02–05):** Hardware access during initial build is a single Windows 11 development workstation; Linux and macOS sensor backends are isolated behind portable Rust collector traits for future expansion (`Stage 02+`), not natively compiled or tested on Linux/macOS hardware yet.
 
+- **Windows Firewall Isolation Elevation Requirement (Stage 05):** Applying live `netsh advfirewall firewall` isolation rules requires an elevated Administrator/`SYSTEM` token on Windows. When running unprivileged in lab tests (`allow_unprivileged_dry_run_isolation = true`), the Rust sensor records exact planned `netsh` rules (`mode: "dry_run_unprivileged"`) rather than failing silently or spoofing live Windows Firewall state.
+
 ---
 
 ## 3. Current Implementation Status
 
-- **Stage 01 (Current):** Architecture, database DDL, API/telemetry/SOC contracts, security threat model, and repository governance documentation completed.
-- **Stages 02–07:** Not yet implemented (Rust sensor, detection engine, forensics/correlation engine, response engine, backend runtime, frontend console, and screenshots remain pending in upcoming stages).
+- **Stages 01–05 (Completed):** Architecture/contracts, compiled Rust telemetry & response agent (`andhak-edr-agent`), YARA-X/EMBER/FIM/8-rule behavioral/IOC detection engine, correlation/timeline/forensics/deterministic triage engine, and Argon2id+JWT RBAC response/quarantine/audit engine are implemented and tested.
+- **Stages 06–07 (Remaining):** WebSocket live event streaming, ANDHAK SOC HMAC bridge, 12-view React TypeScript console, Docker/CI deployment configs, read-only public demo replay dataset, and 12 captured Playwright screenshots remain pending.

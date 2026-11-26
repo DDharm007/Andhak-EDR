@@ -8,8 +8,9 @@ use sha2::{Digest, Sha256};
 use crate::config::AgentConfig;
 use crate::error::AgentError;
 use crate::models::{
-    AgentPolicy, EnrollmentRequest, EnrollmentResponse, HeartbeatRequest, HeartbeatResponse,
-    TelemetryBatchRequest, TelemetryBatchResponse, TelemetryEventIn,
+    AgentPolicy, CommandAckRequest, CommandAckResponse, EnrollmentRequest, EnrollmentResponse,
+    HeartbeatRequest, HeartbeatResponse, TelemetryBatchRequest, TelemetryBatchResponse,
+    TelemetryEventIn,
 };
 
 #[derive(Clone)]
@@ -156,6 +157,33 @@ impl BackendClient {
             });
         }
         Ok(Ok(res.json::<TelemetryBatchResponse>().await?))
+    }
+
+    pub async fn ack_command(
+        &self,
+        endpoint_id: &str,
+        agent_token: &str,
+        action_id: &str,
+        ack: &CommandAckRequest,
+    ) -> Result<CommandAckResponse, AgentError> {
+        let url = format!("{}/api/v1/agent/commands/{action_id}/ack", self.base_url);
+        let res = self
+            .http
+            .post(url)
+            .bearer_auth(agent_token)
+            .header("X-Endpoint-ID", endpoint_id)
+            .json(ack)
+            .send()
+            .await?;
+        let status = res.status();
+        if !status.is_success() {
+            let body = res.text().await.unwrap_or_default();
+            return Err(AgentError::Backend {
+                status: status.as_u16(),
+                body,
+            });
+        }
+        Ok(res.json::<CommandAckResponse>().await?)
     }
 }
 

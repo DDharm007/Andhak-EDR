@@ -22,6 +22,8 @@ dependencies = [
   "scikit-learn>=1.5,<2.0",
   "PyYAML>=6.0,<7.0",
   "python-multipart>=0.0.12",
+  "PyJWT>=2.9,<3.0",
+  "argon2-cffi>=23.1,<26.0",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +45,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", "app.auth.require_role"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

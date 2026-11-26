@@ -14,6 +14,10 @@ pub struct AgentConfig {
     pub allow_insecure_loopback_http: bool,
     pub state_file: PathBuf,
     pub spool_db_path: PathBuf,
+    #[serde(default = "default_quarantine_dir")]
+    pub quarantine_dir: PathBuf,
+    #[serde(default = "default_dry_run_isolation")]
+    pub allow_unprivileged_dry_run_isolation: bool,
     #[serde(default = "default_watch_paths")]
     pub watch_paths: Vec<PathBuf>,
     #[serde(default = "default_exclusions")]
@@ -91,6 +95,12 @@ fn default_max_spool_events() -> usize {
 fn default_max_channel_capacity() -> usize {
     1024
 }
+fn default_quarantine_dir() -> PathBuf {
+    PathBuf::from(".local-data/quarantine")
+}
+fn default_dry_run_isolation() -> bool {
+    true
+}
 
 impl Default for AgentConfig {
     fn default() -> Self {
@@ -100,6 +110,8 @@ impl Default for AgentConfig {
             allow_insecure_loopback_http: false,
             state_file: PathBuf::from(".local-data/agent-state.json"),
             spool_db_path: PathBuf::from(".local-data/agent-spool.sqlite3"),
+            quarantine_dir: default_quarantine_dir(),
+            allow_unprivileged_dry_run_isolation: true,
             watch_paths: default_watch_paths(),
             exclusions: default_exclusions(),
             heartbeat_seconds: default_heartbeat_secs(),

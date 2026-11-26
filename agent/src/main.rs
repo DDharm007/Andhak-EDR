@@ -13,8 +13,9 @@ use andhak_edr_agent::collectors::{
 use andhak_edr_agent::config::{AgentConfig, AgentState};
 use andhak_edr_agent::error::AgentError;
 use andhak_edr_agent::models::{
-    EnrollmentRequest, HeartbeatRequest, SensorHealthMap, TelemetryEventIn,
+    EnrollmentRequest, HeartbeatRequest, PendingCommand, SensorHealthMap, TelemetryEventIn,
 };
+use andhak_edr_agent::response::execute_command;
 use andhak_edr_agent::spool::EventSpool;
 use andhak_edr_agent::transport::{backoff_delay, BackendClient};
 
@@ -65,6 +66,8 @@ enum Commands {
     },
     /// Run continuous endpoint monitoring, heartbeat, and TLS batch upload
     Run,
+    /// Poll backend heartbeat once and execute/ack any approved response commands
+    PollCommandsOnce,
 }
 
 #[tokio::main]
@@ -95,6 +98,7 @@ async fn run_cli() -> Result<(), AgentError> {
         Commands::Status => cmd_status(&cfg),
         Commands::CollectOnce { dry_run } => cmd_collect_once(&cfg, dry_run).await,
         Commands::Run => cmd_run(cfg).await,
+        Commands::PollCommandsOnce => cmd_poll_commands_once(&cfg).await,
     }
 }
 
@@ -382,10 +386,8 @@ async fn cmd_run(cfg: AgentConfig) -> Result<(), AgentError> {
                             }
                         }
                         if !resp.pending_commands.is_empty() {
-                            tracing::info!(
-                                count = resp.pending_commands.len(),
-                                "Pending response commands queued for Stage 05 executor"
-                            );
+                            execute_pending_commands(&cfg, &client, &creds, &resp.pending_commands)
+                                .await;
                         }
                     }
                     Err(err) => {
@@ -473,4 +475,87 @@ async fn flush_pending(
             break;
         }
     }
+}
+
+async fn execute_pending_commands(
+    cfg: &AgentConfig,
+    client: &BackendClient,
+    creds: &AgentState,
+    commands: &[PendingCommand],
+) -> usize {
+    let mut handled = 0usize;
+    for cmd in commands {
+        let ack = execute_command(cfg, cmd);
+        tracing::info!(
+            action_id = %cmd.action_id,
+            action_type = %cmd.action_type,
+            success = ack.success,
+            "Executed response command"
+        );
+        match client
+            .ack_command(&creds.endpoint_id, &creds.agent_token, &cmd.action_id, &ack)
+            .await
+        {
+            Ok(resp) => {
+                handled += 1;
+                tracing::info!(action_id = %resp.action_id, status = %resp.status, "Acknowledged response command");
+            }
+            Err(err) => {
+                tracing::error!(action_id = %cmd.action_id, error = %err, "Failed acknowledging response command");
+            }
+        }
+    }
+    handled
+}
+
+async fn cmd_poll_commands_once(cfg: &AgentConfig) -> Result<(), AgentError> {
+    let creds = AgentState::load(&cfg.state_file)?.ok_or_else(|| {
+        AgentError::Auth("Agent is not enrolled; run `enroll --token ...` first".into())
+    })?;
+    let client = BackendClient::new(cfg)?;
+    let mut sys_col = PlatformSystem::new();
+    let (snap, _) = sys_col.collect_metrics(&creds.endpoint_id, 1)?;
+    let spool = EventSpool::open(&cfg.spool_db_path, cfg.max_spool_events)?;
+    let depth = spool.depth().unwrap_or(0);
+    let sysmon_col = PlatformSysmon::new();
+
+    let hb = HeartbeatRequest {
+        endpoint_id: creds.endpoint_id.clone(),
+        agent_version: AGENT_VERSION.into(),
+        uptime_seconds: 1,
+        cpu_percent: snap.cpu_percent,
+        memory_used_mb: snap.memory_used_mb,
+        memory_total_mb: snap.memory_total_mb,
+        disk_used_percent: snap.disk_used_percent,
+        agent_rss_mb: snap.agent_rss_mb,
+        spool_queue_depth: depth,
+        policy_version: creds.policy_version,
+        sensors: SensorHealthMap {
+            process: andhak_edr_agent::models::SensorState::Ready,
+            network: if cfg!(windows) {
+                andhak_edr_agent::models::SensorState::Ready
+            } else {
+                andhak_edr_agent::models::SensorState::Unavailable
+            },
+            filesystem: if cfg.watch_paths.is_empty() {
+                andhak_edr_agent::models::SensorState::Unavailable
+            } else {
+                andhak_edr_agent::models::SensorState::Ready
+            },
+            system: andhak_edr_agent::models::SensorState::Ready,
+            sysmon: sysmon_col.health(),
+        },
+    };
+    let resp = client
+        .heartbeat(&creds.endpoint_id, &creds.agent_token, &hb)
+        .await?;
+    let handled = execute_pending_commands(cfg, &client, &creds, &resp.pending_commands).await;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&serde_json::json!({
+            "commands_received": resp.pending_commands.len(),
+            "commands_acknowledged": handled,
+        }))?
+    );
+    Ok(())
 }

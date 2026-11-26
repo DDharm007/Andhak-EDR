@@ -160,3 +160,37 @@
 ### 3. Handoff Summary -> Ready for Stage 05
 - **Stage 04 Gate Passed:** Multi-stage alerts correlate deterministically into unified incidents with React Flow graphs, tamper-evident forensic bundles, and zero-AI cited investigations.
 - **Stage 05 Next Steps:** Implement JWT authentication + RBAC (`readonly_demo`, `analyst`, `responder`, `admin`), protected OS target denylist, approval-gated response engine, reversible file quarantine vault + restore, reversible endpoint isolation, SHA-256 hash-chained `audit_logs`, and Rust agent Stage 05 response execution + acknowledgment.
+
+---
+
+## Stage 05 — Prevention & Incident Response Engine
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **Authentication & RBAC (`backend/app/auth.py`, `backend/app/routers/auth.py`, `backend/app/cli.py`):**
+   - Implemented `Argon2id` (`argon2-cffi`) password hashing, HS256 JWT tokens (`PyJWT`), `/api/v1/auth/login`, `/api/v1/auth/me`, `/api/v1/users`, CLI `create-user`, optional env-based bootstrap admin in `init_database`, and `require_role(...)` enforcement blocking both insufficient roles and any `ANDHAK_DEMO_MODE=true` mutations (`403`).
+2. **Protected Target Denylist & Safety (`backend/app/response/safety.py`):**
+   - Rejects unsafe actions (`422 PROTECTED_TARGET_BLOCKED`), blocking kernel PIDs (`<=4`), protected OS processes (`system`, `lsass.exe`, `csrss.exe`, `wininit.exe`, `services.exe`, `smss.exe`, `svchost.exe`, `explorer.exe`, `andhak-edr-agent` via both metadata and `process_executions` DB lookup), Windows `System32`/`SysWOW64`/`WinSxS` paths, path traversal (`..`), and loopback/non-routable network indicators (`127.0.0.1`, `localhost`).
+3. **Approval-Gated Response, Reversible Quarantine/Isolation & Policies (`response/engine.py`, `routers/responses.py`, `routers/policies.py`):**
+   - Built `pending_approval -> approved/rejected -> executed/failed -> rolled_back` state machine with `409 Conflict` guards against double decisions, reversible `release_isolation` and `restore_file` rollback initiation, `quarantine_vault` tracking, and versioned `/api/v1/policies` + retention management.
+4. **Tamper-Evident SHA-256 Audit Log (`backend/app/response/audit.py`):**
+   - Added append-only `audit_logs` hash chain (`entry_hash = sha256(prev_hash + canonical_record)`) and full chain verification endpoint (`verify_audit_chain`).
+5. **Rust Agent Stage 05 Executor (`agent/src/response.rs`, `transport.rs`, `main.rs`):**
+   - Added agent-side protected target guards, XOR-obfuscated `ANDHAKQ1` `.vault` quarantine + decrypted SHA-256 verification before unlink, exact-SHA-256 restoration, PID reuse check + process termination, reversible `netsh advfirewall firewall` isolation plan (or explicit unprivileged `dry_run_unprivileged`), `poll-commands-once`, and `POST /api/v1/agent/commands/{action_id}/ack`.
+
+### 2. Bugs Discovered & Resolved During Stage 05
+- **`ProtectedTargetError` Inheritance Masking:** Initial `ProtectedTargetError(ValueError)` was caught by `except ValueError:` inside `_validate_network_target` when validating `127.0.0.1`, allowing `block_network_indicator` to succeed (`201`) instead of returning `422`. Changed `ProtectedTargetError` to inherit directly from `Exception` and separated IP parsing from validation.
+- **FastAPI `Depends()` Ruff `B008`:** Configured `extend-immutable-calls` in `backend/pyproject.toml` so FastAPI dependency declarations validate cleanly under `ruff check`.
+
+### 3. Tests Executed & Results
+- `cargo fmt --manifest-path agent\Cargo.toml` + `cargo clippy --manifest-path agent\Cargo.toml --all-targets -- -D warnings`: **PASS** (`0` warnings)
+- `cargo test --manifest-path agent\Cargo.toml`: **PASS** (`10` passed, `0` failed; includes protected denylist, quarantine/restore SHA-256 roundtrip, isolation rule whitelist)
+- `cargo build --manifest-path agent\Cargo.toml`: **PASS**
+- `backend\.venv\Scripts\ruff.exe format --check` & `ruff check backend\app backend\tests`: **PASS** (`39` files formatted, `All checks passed!`)
+- `backend\.venv\Scripts\python.exe -m pytest backend\tests -v`: **PASS** (`10` passed in `57.84s`, including RBAC boundaries, protected denylists, audit hash-chain tamper detection, and live HTTPS compiled-agent quarantine, SHA-256 restore, and real child-process termination).
+
+### 4. Handoff Summary -> Ready for Stage 06
+- **Stage 05 Gate Passed:** Authenticated RBAC, target safety, approval gates, quarantine vault + restore, isolation rollback, tamper-evident audit chain, and live Rust response execution verified.
+- **Stage 06 Next Steps:** Implement backend WebSockets (`/ws/telemetry`, `/ws/alerts`, `/ws/responses`), `asyncio` event bus, fleet `/api/v1/overview` + `/api/v1/endpoints/{id}` detail views, HMAC-authenticated ANDHAK SOC Bridge (`/api/v1/soc-bridge/*`) + non-destructive SOC integration test, and full 12-view React/TS/Tailwind/Recharts/React Flow console matching `#101114`/`#A92532` and pulled `andhak-logo.png`.

@@ -143,6 +143,19 @@ pub struct HeartbeatResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommandAckRequest {
+    pub success: bool,
+    pub executed_at: Option<String>,
+    pub verification: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommandAckResponse {
+    pub action_id: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessPayload {
     pub process_guid: String,
     pub parent_process_guid: Option<String>,

@@ -111,6 +111,29 @@ def _seed_defaults(conn: sqlite3.Connection, cfg: Settings) -> None:
                 "2099-12-31T23:59:59+00:00",
             ),
         )
+    if cfg.bootstrap_admin_username and cfg.bootstrap_admin_password:
+        from app.auth import hash_password
+
+        existing = conn.execute(
+            "SELECT user_id FROM users WHERE username = ?",
+            (cfg.bootstrap_admin_username.strip(),),
+        ).fetchone()
+        if existing is None:
+            pw_hash = hash_password(cfg.bootstrap_admin_password)
+            conn.execute(
+                """
+                INSERT INTO users(
+                    user_id, username, display_name, role, password_hash, is_active, created_at
+                ) VALUES (?, ?, ?, 'admin', ?, 1, ?)
+                """,
+                (
+                    f"usr_boot_{hash_secret(cfg.bootstrap_admin_username)[:10]}",
+                    cfg.bootstrap_admin_username.strip(),
+                    cfg.bootstrap_admin_username.strip(),
+                    pw_hash,
+                    now,
+                ),
+            )
     sync_detection_rules(conn)
 
 

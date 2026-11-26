@@ -35,9 +35,22 @@ class Settings(BaseSettings):
         default_factory=lambda: secrets.token_urlsafe(48),
         alias="ANDHAK_EDR_JWT_SECRET",
     )
+    jwt_expire_minutes: int = Field(default=480, alias="ANDHAK_EDR_JWT_EXPIRE_MINUTES")
     bootstrap_token: str | None = Field(
         default=None,
         alias="ANDHAK_EDR_ENROLLMENT_BOOTSTRAP_TOKEN",
+    )
+    bootstrap_admin_username: str | None = Field(
+        default=None,
+        alias="ANDHAK_EDR_BOOTSTRAP_ADMIN_USER",
+    )
+    bootstrap_admin_password: str | None = Field(
+        default=None,
+        alias="ANDHAK_EDR_BOOTSTRAP_ADMIN_PASSWORD",
+    )
+    quarantine_vault_dir: Path | None = Field(
+        default=None,
+        alias="ANDHAK_EDR_QUARANTINE_DIR",
     )
 
     max_batch_events: int = 500

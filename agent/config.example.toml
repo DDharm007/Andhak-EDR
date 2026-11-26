@@ -10,6 +10,8 @@ allow_insecure_loopback_http = false
 
 state_file = ".local-data/agent-state.json"
 spool_db_path = ".local-data/agent-spool.sqlite3"
+quarantine_dir = ".local-data/quarantine"
+allow_unprivileged_dry_run_isolation = true
 
 watch_paths = [
   "C:\\Windows\\System32\\drivers\\etc",

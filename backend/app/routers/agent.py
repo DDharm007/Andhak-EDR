@@ -8,8 +8,13 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.response.engine import (
+    ConflictActionError,
+    ResourceNotFoundError,
+    ack_agent_command,
+)
 from app.schemas import (
     EnrollmentRequest,
     EnrollmentTokenCreate,
@@ -111,3 +116,30 @@ async def ingest_telemetry(
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class CommandAckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    success: bool
+    executed_at: str | None = Field(default=None, max_length=64)
+    verification: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/commands/{action_id}/ack")
+def acknowledge_command(
+    action_id: str,
+    payload: CommandAckRequest,
+    endpoint_id: str = Depends(require_agent_auth),
+) -> dict[str, Any]:
+    try:
+        return ack_agent_command(
+            endpoint_id=endpoint_id,
+            action_id=action_id,
+            success=payload.success,
+            verification=payload.verification,
+            executed_at=payload.executed_at,
+        )
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ConflictActionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc

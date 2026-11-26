@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.db import init_database
 from app.routers.agent import router as agent_router
 from app.routers.detections import router as detections_router
+from app.routers.forensics import router as forensics_router
 from app.services.ingest import list_endpoints, list_telemetry_events
 
 
@@ -32,6 +33,7 @@ app = FastAPI(
 )
 app.include_router(agent_router)
 app.include_router(detections_router)
+app.include_router(forensics_router)
 
 
 @app.get("/api/v1/health")

@@ -15,6 +15,7 @@ from typing import Any
 from app.config import Settings, get_settings
 from app.db import DEFAULT_POLICY_ID, get_connection, hash_secret, utc_now_iso
 from app.detection.pipeline import evaluate_ingested_event
+from app.forensics.correlator import correlate_alerts_for_endpoint
 from app.schemas import (
     EnrollmentRequest,
     HeartbeatRequest,
@@ -302,6 +303,8 @@ def ingest_telemetry_batch(
                 alerts_emitted += len(evaluate_ingested_event(conn, endpoint_id, evt))
             else:
                 duplicate_skipped += 1
+        if alerts_emitted > 0:
+            correlate_alerts_for_endpoint(conn, endpoint_id)
         conn.execute(
             "UPDATE endpoints SET last_heartbeat_at = ? WHERE endpoint_id = ?",
             (ingested_at, endpoint_id),

@@ -19,6 +19,7 @@ from app.detection.fim_engine import evaluate_fim_change
 from app.detection.intel_service import enrich_indicator_reputation, match_telemetry_iocs
 from app.detection.scoring import AlertCandidate, persist_alert_conn
 from app.detection.yara_scanner import RULES_DIR, scan_bytes_yara
+from app.forensics.correlator import correlate_alerts_for_endpoint
 from app.schemas import TelemetryEventIn
 
 _FS_EVENT_TO_CHANGE = {
@@ -279,6 +280,9 @@ async def analyze_file_bytes(
             )
             if alert:
                 created_alerts.append(alert)
+
+        if endpoint_id and created_alerts:
+            correlate_alerts_for_endpoint(conn, endpoint_id)
 
     return {
         "analysis_id": analysis_id,

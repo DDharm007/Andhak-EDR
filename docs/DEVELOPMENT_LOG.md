@@ -62,9 +62,9 @@
 ---
 
 ## Stage 02 — Rust Endpoint Sensor
-**Date:** 2026-11-26  
-**Milestone Status:** Complete  
-**Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
 
 ### 1. Summary of Work Completed
 1. **Rust Sensor Core (`agent/src/`):**
@@ -103,9 +103,9 @@
 ---
 
 ## Stage 03 — Detection & Integrity Intelligence
-**Date:** 2026-11-26  
-**Milestone Status:** Complete  
-**Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
 
 ### 1. Summary of Work Completed
 1. **YARA-X Scanner (`backend/app/detection/yara_scanner.py` & `backend/app/rules/yara/andhak_edr_rules.yar`):**
@@ -130,3 +130,33 @@
 ### 4. Handoff Summary -> Ready for Stage 04
 - **Stage 03 Gate Passed:** YARA-X, EMBER static PE scoring, FIM, all 8 behavioral scenarios, and IOC matching verified end-to-end.
 - **Stage 04 Next Steps:** Implement incident correlation (`time_window`, `process_guid`, `endpoint`, `ioc`, duplicate alert grouping), multi-level process tree builder, chronological attack timeline, evidence-backed MITRE ATT&CK attribution, SHA-256-sealed forensic bundles, and **Deterministic Investigation & Automated Triage Engine** (no generative AI/LLM per ADR-002).
+
+---
+
+## Stage 04 — Forensics, Correlation & Threat Investigation
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **Incident Correlation Engine (`backend/app/forensics/correlator.py`):**
+   - Groups unassigned endpoint alerts by root `process_guid` ancestry, same-endpoint 30-minute time windows, and shared incident aggregates (`max severity`, `max confidence`, corroborated `risk_score`, distinct MITRE tactics/techniques, multi-stage title escalation).
+   - Automatically invoked inside `ingest_telemetry_batch` (`backend/app/services/ingest.py`) and `analyze_file_bytes` (`backend/app/detection/pipeline.py`).
+2. **Process Tree & React Flow Graph Builder (`backend/app/forensics/process_tree.py`):**
+   - Walks ancestor and descendant `process_executions` chains (`winword.exe -> powershell.exe -> payload.exe`), attaches per-process alerts and outbound `network_sockets`, and emits React Flow node/edge payloads (`endpoint`, `process`, `alert`, `network`, `file`).
+3. **Chronological Timeline & Evidence-Backed MITRE ATT&CK Mapper (`backend/app/forensics/timeline.py`):**
+   - Merges incident alerts, referenced `telemetry_events`, and endpoint `fim_events` into a strictly time-sorted attack timeline.
+   - Maps only observed MITRE ATT&CK techniques backed by explicit `supporting_alert_ids`, `supporting_event_ids`, and `supporting_rules` (no unverified techniques).
+4. **Forensic Bundles & Deterministic Triage (`bundler.py`, `investigator.py`, `routers/forensics.py`):**
+   - Generates canonical JSON evidence bundles with SHA-256 integrity seals (`manifest_sha256`) and verifies bundle hashes on retrieval (`integrity_verified`).
+   - Implemented Zero-AI `run_deterministic_investigation` (`deterministic_rules_v1`) producing evidence-cited narratives, corroboration & Authenticode posture false-positive checks, and approval-gated runbook recommendations.
+   - Exposed `/api/v1/incidents*`, `/api/v1/forensics/{bundle_id}`, and `/api/v1/hunting/search` routes and registered them in `backend/app/main.py`.
+
+### 2. Tests Executed & Results
+- `backend\.venv\Scripts\ruff.exe format --check backend\app backend\tests`: **PASS** (`30 files already formatted`)
+- `backend\.venv\Scripts\ruff.exe check backend\app backend\tests`: **PASS** (`All checks passed!`)
+- `backend\.venv\Scripts\python.exe -m pytest backend\tests -v`: **PASS** (`8` passed in `42.00s`, including `test_multi_stage_correlation_forensics_triage_and_hunting` verifying 6-event attack-chain correlation, 3-level process tree, React Flow graph, chronological timeline, MITRE evidence discipline, forensic SHA-256 tamper detection, deterministic investigation, and hunting filters).
+
+### 3. Handoff Summary -> Ready for Stage 05
+- **Stage 04 Gate Passed:** Multi-stage alerts correlate deterministically into unified incidents with React Flow graphs, tamper-evident forensic bundles, and zero-AI cited investigations.
+- **Stage 05 Next Steps:** Implement JWT authentication + RBAC (`readonly_demo`, `analyst`, `responder`, `admin`), protected OS target denylist, approval-gated response engine, reversible file quarantine vault + restore, reversible endpoint isolation, SHA-256 hash-chained `audit_logs`, and Rust agent Stage 05 response execution + acknowledgment.

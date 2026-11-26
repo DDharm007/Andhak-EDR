@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     retention_incidents_days: int = Field(default=180, alias="ANDHAK_RETENTION_INCIDENTS_DAYS")
     retention_audit_days: int = Field(default=365, alias="ANDHAK_RETENTION_AUDIT_DAYS")
 
+    # Stage 03 Threat Intelligence Policy Gates (external lookups strictly opt-in)
+    intel_external_enabled: bool = Field(default=False, alias="ANDHAK_INTEL_EXTERNAL_ENABLED")
+    intel_allow_hash_only: bool = Field(default=True, alias="ANDHAK_INTEL_ALLOW_HASH_ONLY")
+    intel_allow_file_upload: bool = Field(default=False, alias="ANDHAK_INTEL_ALLOW_FILE_UPLOAD")
+    malwarebazaar_auth_key: str | None = Field(default=None, alias="MALWAREBAZAAR_AUTH_KEY")
+    abuseipdb_api_key: str | None = Field(default=None, alias="ABUSEIPDB_API_KEY")
+    virustotal_api_key: str | None = Field(default=None, alias="VIRUSTOTAL_API_KEY")
+    ember_model_path: Path | None = Field(default=None, alias="ANDHAK_EMBER_MODEL_PATH")
+
     @property
     def resolved_db_path(self) -> Path:
         if self.db_path is not None:

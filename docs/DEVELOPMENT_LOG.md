@@ -99,3 +99,34 @@
 ### 4. Handoff Summary -> Ready for Stage 03
 - **Stage 02 Gate Passed:** Compiled Rust sensor collects real Windows process, network, filesystem, and system telemetry and persists batches over verified HTTPS/TLS to the local SQLite WAL backend.
 - **Stage 03 Next Steps:** Implement `backend/app/detection/` modules: YARA-X scanner (`yara-x>=1.24`), EMBER static PE feature extractor & versioned classifier, FIM baseline/drift/signature engine, 8 windowed behavioral rules, policy-gated IOC intelligence, and transparent risk scoring (`severity` vs `confidence`).
+
+---
+
+## Stage 03 — Detection & Integrity Intelligence
+**Date:** 2026-11-26  
+**Milestone Status:** Complete  
+**Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **YARA-X Scanner (`backend/app/detection/yara_scanner.py` & `backend/app/rules/yara/andhak_edr_rules.yar`):**
+   - Integrated native `yara-x` (`>=1.24`, BSD-3-Clause preserved in `THIRD_PARTY_LICENSES/YARA-X-BSD-3-Clause.txt`) with syntax validation, 20 MB bounded in-memory scanning, rule attribution metadata, and curated local rules (`EICAR`, encoded PowerShell, PE injection API triplet, ransom-note indicators, LSASS credential dump markers, and download-execute script stagers).
+2. **EMBER Static PE Classifier (`backend/app/detection/ember_classifier.py`):**
+   - Built `pefile` + `numpy` 2381-dim EMBER-aligned feature extraction (byte histogram, 16x16 byte-entropy, printable strings, PE header/sections/imports/exports/data directories) with finite-value validation and calibrated non-generative `HistGradientBoostingClassifier` (`andhak-ember-gbdt-v1.0`), explicit dataset/model provenance, and non-conclusive advisory caveats.
+3. **File Integrity Monitoring (`backend/app/detection/fim_engine.py`):**
+   - Implemented directory SHA-256 baseline creation (`fim_baselines`), drift comparison (`created`, `modified`, `deleted`, `renamed`, `signature_changed`), Authenticode degradation detection, and FIM alert emission (`fim_events`).
+4. **Stateful Behavioral Engine (`backend/app/detection/behavioral_engine.py`):**
+   - Implemented all eight scenarios (`BEH-001` through `BEH-008`), including `winword.exe -> powershell.exe` ancestry inspection, Temp drop + execution multi-event correlation, and 60s sliding-window rapid file-write burst detection (`BEH-007`).
+5. **Threat Intelligence & Scoring (`intel_service.py`, `scoring.py`, `pipeline.py`, `routers/detections.py`):**
+   - Added local IOC store (`ip`, `domain`, `url`, `file_hash`), policy-gated MalwareBazaar/AbuseIPDB/VirusTotal adapters (disabled by default; no private file uploads), separate `severity` and `confidence` scoring, automatic detection evaluation on ingestion, and `/api/v1/{detections,fim,malware,intel}/*` endpoints.
+6. **Documentation:** Added [`docs/DETECTION_ARCHITECTURE.md`](DETECTION_ARCHITECTURE.md).
+
+### 2. Bugs Discovered & Resolved During Stage 03
+- **RFC 5737 Test-Net Classification in Python 3.12:** `ipaddress.ip_address("203.0.113.55").is_private` evaluates `True` in Python 3.12, causing `BEH-005` to skip documentation-range C2 tests. Replaced `is_private` check with explicit RFC 1918/ULA filtering + suspicious port triggers (`4444`, `5555`, `1337`, etc.).
+
+### 3. Tests Executed & Results
+- `ruff check backend\app backend\tests`: **PASS** (`All checks passed!`)
+- `pytest backend\tests -v`: **PASS** (`7` passed in `50.56s`: Stage 02 ingest `2/2`, live HTTPS compiled Rust E2E `1/1`, Stage 03 YARA-X/EMBER/FIM/8-behavioral/IOC suite `4/4`).
+
+### 4. Handoff Summary -> Ready for Stage 04
+- **Stage 03 Gate Passed:** YARA-X, EMBER static PE scoring, FIM, all 8 behavioral scenarios, and IOC matching verified end-to-end.
+- **Stage 04 Next Steps:** Implement incident correlation (`time_window`, `process_guid`, `endpoint`, `ioc`, duplicate alert grouping), multi-level process tree builder, chronological attack timeline, evidence-backed MITRE ATT&CK attribution, SHA-256-sealed forensic bundles, and **Deterministic Investigation & Automated Triage Engine** (no generative AI/LLM per ADR-002).

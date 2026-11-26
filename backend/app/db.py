@@ -42,6 +42,8 @@ def init_database(settings: Settings | None = None) -> Path:
 
 
 def _seed_defaults(conn: sqlite3.Connection, cfg: Settings) -> None:
+    from app.detection.pipeline import sync_detection_rules
+
     now = utc_now_iso()
     conn.execute(
         """
@@ -109,6 +111,7 @@ def _seed_defaults(conn: sqlite3.Connection, cfg: Settings) -> None:
                 "2099-12-31T23:59:59+00:00",
             ),
         )
+    sync_detection_rules(conn)
 
 
 @contextmanager

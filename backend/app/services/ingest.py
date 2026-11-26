@@ -14,6 +14,7 @@ from typing import Any
 
 from app.config import Settings, get_settings
 from app.db import DEFAULT_POLICY_ID, get_connection, hash_secret, utc_now_iso
+from app.detection.pipeline import evaluate_ingested_event
 from app.schemas import (
     EnrollmentRequest,
     HeartbeatRequest,
@@ -291,12 +292,14 @@ def ingest_telemetry_batch(
     ingested_at = utc_now_iso()
     accepted = 0
     duplicate_skipped = 0
+    alerts_emitted = 0
 
     with get_connection(cfg) as conn:
         for evt in batch.events:
             inserted = _insert_telemetry_event(conn, endpoint_id, evt, ingested_at)
             if inserted:
                 accepted += 1
+                alerts_emitted += len(evaluate_ingested_event(conn, endpoint_id, evt))
             else:
                 duplicate_skipped += 1
         conn.execute(
@@ -308,6 +311,7 @@ def ingest_telemetry_batch(
         "batch_id": batch.batch_id,
         "accepted": accepted,
         "duplicate_skipped": duplicate_skipped,
+        "alerts_emitted": alerts_emitted,
         "ingested_at": ingested_at,
     }
 

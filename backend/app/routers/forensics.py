@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 
+from app.auth import guard_demo_readonly
 from app.config import get_settings
 from app.db import get_connection
 from app.forensics.bundler import collect_forensic_bundle, get_forensic_bundle
@@ -125,7 +126,7 @@ def get_incident_detail(incident_id: str) -> dict[str, Any]:
     return detail
 
 
-@router.patch("/incidents/{incident_id}")
+@router.patch("/incidents/{incident_id}", dependencies=[Depends(guard_demo_readonly)])
 def patch_incident_status(incident_id: str, payload: IncidentStatusPatch) -> dict[str, Any]:
     with get_connection(get_settings()) as conn:
         cur = conn.execute(
@@ -150,7 +151,7 @@ def get_incident_graph(incident_id: str) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/incidents/{incident_id}/investigate")
+@router.post("/incidents/{incident_id}/investigate", dependencies=[Depends(guard_demo_readonly)])
 def investigate_incident(incident_id: str) -> dict[str, Any]:
     try:
         return run_deterministic_investigation(incident_id, settings=get_settings())
@@ -158,7 +159,11 @@ def investigate_incident(incident_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/incidents/{incident_id}/forensics", status_code=201)
+@router.post(
+    "/incidents/{incident_id}/forensics",
+    status_code=201,
+    dependencies=[Depends(guard_demo_readonly)],
+)
 def create_forensic_bundle(
     incident_id: str,
     payload: ForensicsCollectRequest | None = None,

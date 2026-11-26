@@ -8,9 +8,10 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.auth import guard_demo_readonly
 from app.config import get_settings
 from app.db import get_connection
 from app.detection.ember_classifier import DATASET_PROVENANCE, FEATURE_SCHEMA_VERSION, MODEL_VERSION
@@ -80,7 +81,7 @@ def get_alerts(
     return {"items": items, "total": len(items)}
 
 
-@router.patch("/detections/alerts/{alert_id}")
+@router.patch("/detections/alerts/{alert_id}", dependencies=[Depends(guard_demo_readonly)])
 def update_alert_status(alert_id: str, payload: AlertStatusPatch) -> dict[str, Any]:
     with get_connection() as conn:
         cur = conn.execute(
@@ -110,7 +111,7 @@ def fim_status(endpoint_id: str | None = None) -> dict[str, Any]:
     return list_fim_status(endpoint_id=endpoint_id)
 
 
-@router.post("/fim/baselines", status_code=201)
+@router.post("/fim/baselines", status_code=201, dependencies=[Depends(guard_demo_readonly)])
 def fim_create_baseline(payload: FimBaselineCreate) -> dict[str, Any]:
     try:
         return capture_directory_baseline(
@@ -157,7 +158,7 @@ def list_malware_analyses(limit: int = Query(default=100, ge=1, le=500)) -> dict
     return {"items": items, "total": len(items)}
 
 
-@router.post("/malware/scan")
+@router.post("/malware/scan", dependencies=[Depends(guard_demo_readonly)])
 async def scan_malware_file(payload: MalwareScanRequest) -> dict[str, Any]:
     try:
         content = base64.b64decode(payload.content_base64, validate=True)
@@ -183,7 +184,7 @@ def get_iocs() -> dict[str, Any]:
     return {"items": items, "total": len(items)}
 
 
-@router.post("/intel/iocs", status_code=201)
+@router.post("/intel/iocs", status_code=201, dependencies=[Depends(guard_demo_readonly)])
 def create_ioc(payload: IocCreateRequest) -> dict[str, Any]:
     try:
         return add_ioc(
@@ -200,7 +201,7 @@ def create_ioc(payload: IocCreateRequest) -> dict[str, Any]:
         raise
 
 
-@router.delete("/intel/iocs/{ioc_id}")
+@router.delete("/intel/iocs/{ioc_id}", dependencies=[Depends(guard_demo_readonly)])
 def remove_ioc(ioc_id: str) -> dict[str, bool]:
     if not delete_ioc(ioc_id):
         raise HTTPException(status_code=404, detail="IOC not found.")

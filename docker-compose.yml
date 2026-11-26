@@ -1,0 +1,56 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "127.0.0.1:8010:8010"
+    environment:
+      ANDHAK_EDR_ENV: ${ANDHAK_EDR_ENV:-development}
+      ANDHAK_DEMO_MODE: ${ANDHAK_DEMO_MODE:-false}
+      ANDHAK_EDR_JWT_SECRET: ${ANDHAK_EDR_JWT_SECRET:?Set ANDHAK_EDR_JWT_SECRET in .env}
+      ANDHAK_EDR_CORS_ORIGINS: '["http://127.0.0.1:5174","http://localhost:5174"]'
+      ANDHAK_INTEL_EXTERNAL_ENABLED: "false"
+      ANDHAK_INTEL_ALLOW_FILE_UPLOAD: "false"
+    volumes:
+      - edr_local_data:/app/.local-data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:5174:8080"
+
+  # Optional scalable storage/pub-sub profile:
+  # docker compose --profile postgres-redis up --build
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres-redis"]
+    environment:
+      POSTGRES_DB: andhak_edr
+      POSTGRES_USER: andhak
+      POSTGRES_PASSWORD: ${ANDHAK_POSTGRES_PASSWORD:-change_me_in_env}
+    volumes:
+      - edr_pg_data:/var/lib/postgresql/data
+      - ./docs/contracts/DATABASE_SCHEMA.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U andhak -d andhak_edr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["postgres-redis"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  edr_local_data:
+  edr_pg_data:

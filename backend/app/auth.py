@@ -239,3 +239,13 @@ def require_role(*allowed_roles: str) -> Callable[..., dict[str, Any]]:
         return user
 
     return _dependency
+
+
+def guard_demo_readonly() -> None:
+    """Block operator mutations when running in public read-only demo mode."""
+    cfg = get_settings()
+    if cfg.demo_mode:
+        raise HTTPException(
+            status_code=403,
+            detail="Public demo mode is strictly read-only; mutations are disabled.",
+        )

@@ -225,3 +225,32 @@
 ### 4. Handoff Summary -> Ready for Stage 07
 - **Stage 06 Gate Passed:** Live WebSockets, fleet API, ANDHAK SOC HMAC bridge, and full 12-view React console verified end-to-end.
 - **Stage 07 Next Steps:** Implement public read-only demo replay dataset seeded from sanitized workstation telemetry (`ANDHAK_DEMO_MODE=true`), Dockerfiles + `docker-compose.yml` + GitHub Actions CI, capture all 12 real Playwright console screenshots (`docs/assets/screenshots/`), author comprehensive annotated `README.md`, `docs/PORTFOLIO.md`, run final security/link/all-suite audits, and tag/push `v1.0.0`.
+
+---
+
+## Stage 07 — Testing, Docs, Deployment & Portfolio Release
+- **Date:** 2026-11-26
+- **Milestone Status:** Complete (`v1.0.0`)
+- **Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **Isolated Public Read-Only Demo Mode (`backend/app/demo/replay.py`, `routers/demo.py`):**
+   - Implemented `GET /api/v1/demo/scenarios`, `POST /api/v1/demo/replay/{scenario_id}`, and `cli.py seed-demo` generating clearly labeled `recorded_demo` datasets.
+   - Wired `guard_demo_readonly` across all operator mutation routes (`/api/v1/agent/enrollment-tokens`, `/detections/alerts/*`, `/fim/baselines`, `/malware/scan`, `/intel/iocs`, `/incidents/*/investigate`, `/incidents/*/forensics`, `/responses*`, `/policies`, `/soc-bridge/*`) returning `403 Forbidden` when `ANDHAK_DEMO_MODE=true`.
+2. **Containerization & CI/CD (`backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `docker-compose.yml`, `.github/workflows/ci.yml`):**
+   - Added non-root container definitions and Compose configuration defaulting to local SQLite WAL (`127.0.0.1:8010` + `127.0.0.1:5174`) with optional `postgres-redis` scaling profile plus automated Rust/Python/Frontend GitHub Actions CI.
+3. **Genuine Console Screenshots & Documentation (`docs/assets/screenshots/*.png`, `README.md`, `docs/PORTFOLIO.md`):**
+   - Captured and visually inspected all 12 Playwright headless Microsoft Edge screenshots against live FastAPI + built Vite + live Windows compiled `andhak-edr-agent.exe` telemetry + seeded `recorded_demo` attack chains.
+   - Authored annotated `README.md` with architecture diagrams, screenshot walkthroughs, Quick Start, and honest limitations, plus executive portfolio summary `docs/PORTFOLIO.md`.
+
+### 2. Final Verification Results (Post-Final Code Edit)
+- `cargo fmt --manifest-path agent\Cargo.toml --check`: **PASS**
+- `cargo clippy --manifest-path agent\Cargo.toml --all-targets -- -D warnings`: **PASS** (`0` warnings)
+- `cargo test --manifest-path agent\Cargo.toml`: **PASS** (`10` passed, `0` failed in `5.83s`)
+- `backend\.venv\Scripts\ruff.exe format --check` & `ruff check backend\app backend\tests`: **PASS** (`51` files formatted, `All checks passed!`)
+- `backend\.venv\Scripts\python.exe -m pytest backend\tests -v`: **PASS** (`14` passed, `0` failed in `36.72s`)
+- `frontend` `npm run build` (`tsc -b && vite build`): **PASS** (`3.67s`)
+- `frontend` `npm test` (`vitest run`): **PASS** (`3/3` passed in `226ms`)
+
+### 3. Project Release Handoff Summary
+- **Release `v1.0.0` Ready:** All seven milestones (`Stage 01`–`Stage 07`) implemented, tested end-to-end, documented cleanly, free of hardcoded secrets or broken links, and non-destructive to companion `Andhak SOC`.

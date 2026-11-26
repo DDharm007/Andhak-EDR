@@ -31,6 +31,8 @@ def main() -> None:
     )
     usr.add_argument("--password", required=True)
 
+    sub.add_parser("seed-demo", help="Seed sanitized recorded demonstration scenario")
+
     args = parser.parse_args()
     cfg = get_settings()
     init_database(cfg)
@@ -53,6 +55,10 @@ def main() -> None:
             settings=cfg,
         )
         print(json.dumps(created, indent=2))
+    elif args.command == "seed-demo":
+        from app.demo.replay import seed_demo_scenario
+
+        print(json.dumps(seed_demo_scenario(settings=cfg), indent=2))
 
 
 if __name__ == "__main__":

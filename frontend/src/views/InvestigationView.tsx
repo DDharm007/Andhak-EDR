@@ -114,8 +114,9 @@ export function InvestigationView({
             Deterministic Incident Investigation
           </h1>
           <p className="text-xs text-[#9A9CA6] mt-0.5">
-            Evidence-cited rules &amp; templates (`deterministic_rules_v1`, Zero-AI per ADR-002).
-            All findings reference stored alert/event IDs.
+            Evidence-cited rules &amp; templates (
+            <code className="font-mono text-[#E8E7E3]">deterministic_rules_v1</code>, Zero-AI per
+            ADR-002). All findings reference stored alert/event IDs.
           </p>
         </div>
 
@@ -231,8 +232,8 @@ export function InvestigationView({
                         key={`${rb.action_type}-${i}`}
                         className="rounded border border-[#303139] bg-[#101114] p-2.5 text-xs flex items-center justify-between gap-3"
                       >
-                        <div>
-                          <div className="font-mono font-semibold text-[#E8E7E3]">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono font-semibold text-[#E8E7E3] break-all">
                             P{rb.priority}: {rb.action_type} ({rb.target})
                           </div>
                           <div className="text-[#9A9CA6]">{rb.rationale}</div>

@@ -18,4 +18,18 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    host: "127.0.0.1",
+    port: 5174,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8010",
+        changeOrigin: true,
+      },
+      "/ws": {
+        target: "ws://127.0.0.1:8010",
+        ws: true,
+      },
+    },
+  },
 });

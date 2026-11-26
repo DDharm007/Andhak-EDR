@@ -35,5 +35,5 @@ This file tracks verified environment constraints, architectural scope adjustmen
 
 ## 3. Current Implementation Status
 
-- **Stages 01–05 (Completed):** Architecture/contracts, compiled Rust telemetry & response agent (`andhak-edr-agent`), YARA-X/EMBER/FIM/8-rule behavioral/IOC detection engine, correlation/timeline/forensics/deterministic triage engine, and Argon2id+JWT RBAC response/quarantine/audit engine are implemented and tested.
-- **Stages 06–07 (Remaining):** WebSocket live event streaming, ANDHAK SOC HMAC bridge, 12-view React TypeScript console, Docker/CI deployment configs, read-only public demo replay dataset, and 12 captured Playwright screenshots remain pending.
+- **Stages 01–07 (Completed · `v1.0.0`):** All seven milestones are implemented and verified end-to-end: Rust sensor (`andhak-edr-agent`), YARA-X/EMBER/FIM/8-behavioral/IOC detection, multi-stage correlation & Zero-AI deterministic investigation + forensic bundles, RBAC/denylist/quarantine/isolation/audit response engine, WebSockets + ANDHAK SOC HMAC bridge, 12-view React console, public demo mode, Docker/CI, 12 real screenshots, and portfolio docs.
+- **Post-v1.0.0 Hardware/Platform Scope:** Linux eBPF/auditd and macOS EndpointSecurity collectors sit behind portable Rust traits in `agent/src/collectors/portable_fallback.rs` for future multi-OS hardware verification.

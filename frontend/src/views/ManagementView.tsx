@@ -216,8 +216,8 @@ export function ManagementView({
               ANDHAK SOC Integration Bridge ({String(socStatus?.soc_base_url ?? "127.0.0.1:8000")})
             </h2>
             <p className="text-xs text-[#9A9CA6]">
-              Normalized `edr-*` event export, bidirectional IOC sync, and HMAC containment
-              fulfillment.
+              Normalized <code className="font-mono text-[#E8E7E3]">edr-*</code> event export,
+              bidirectional IOC sync, and HMAC containment fulfillment.
             </p>
           </div>
           <button

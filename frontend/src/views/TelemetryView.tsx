@@ -47,7 +47,8 @@ export function TelemetryView() {
         <div>
           <h1 className="text-xl font-semibold text-[#E8E7E3]">Live Telemetry Stream</h1>
           <p className="text-xs text-[#9A9CA6] mt-0.5">
-            Real-time WebSocket feed (`/ws/telemetry`) and normalized SQLite event ledger.
+            Real-time WebSocket feed (<code className="font-mono text-[#E8E7E3]">/ws/telemetry</code>
+            ) and normalized SQLite event ledger.
           </p>
         </div>
 

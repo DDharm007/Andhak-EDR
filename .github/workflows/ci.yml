@@ -1,0 +1,48 @@
+name: ANDHAK EDR CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust-agent:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path agent/Cargo.toml --check
+      - run: cargo clippy --manifest-path agent/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path agent/Cargo.toml
+      - run: cargo build --manifest-path agent/Cargo.toml
+
+  python-backend:
+    needs: rust-agent
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install "./backend[dev]"
+      - run: ruff format --check backend/app backend/tests
+      - run: ruff check backend/app backend/tests
+      - run: pytest backend/tests -v -k "not live_compiled"
+
+  frontend-console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - run: npm test

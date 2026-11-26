@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.auth import guard_demo_readonly
 from app.response.engine import (
     ConflictActionError,
     ResourceNotFoundError,
@@ -58,7 +59,7 @@ async def require_agent_auth(
     return x_endpoint_id
 
 
-@router.post("/enrollment-tokens", status_code=201)
+@router.post("/enrollment-tokens", status_code=201, dependencies=[Depends(guard_demo_readonly)])
 def create_enrollment_token(payload: EnrollmentTokenCreate) -> dict[str, str]:
     # Note: RBAC admin JWT enforcement is wired in Stage 06; Stage 02 exposes local provisioning.
     return issue_enrollment_token(description=payload.description, ttl_hours=payload.ttl_hours)

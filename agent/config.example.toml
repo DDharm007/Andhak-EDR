@@ -1,0 +1,32 @@
+# ==============================================================================
+# ANDHAK EDR — Endpoint Sensor Configuration Example
+# Copy to agent.toml and enroll with a one-time bootstrap token.
+# Never store universal API secrets inside agent binaries.
+# ==============================================================================
+
+backend_url = "https://127.0.0.1:8010"
+# ca_cert_path = "C:\\ProgramData\\AndhakEDR\\ca.pem"
+allow_insecure_loopback_http = false
+
+state_file = ".local-data/agent-state.json"
+spool_db_path = ".local-data/agent-spool.sqlite3"
+
+watch_paths = [
+  "C:\\Windows\\System32\\drivers\\etc",
+]
+exclusions = [
+  "*.tmp",
+  "*.log",
+  "*.etl",
+  "*agent-spool.sqlite3*",
+  "*andhak-edr.sqlite3*",
+]
+
+heartbeat_seconds = 15
+process_poll_ms = 2000
+network_poll_ms = 5000
+system_poll_ms = 5000
+batch_max_events = 100
+flush_interval_ms = 2000
+max_spool_events = 50000
+channel_capacity = 1024

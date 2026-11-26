@@ -58,3 +58,44 @@
 - **Database Strategy:** SQLite `WAL` primary local database defined in `docs/contracts/DATABASE_SCHEMA.sql`; all schemas preserve PostgreSQL parity via SQLAlchemy 2.x.
 - **No-AI Policy:** Zero LLM/generative AI modules; all investigation/triage features must be deterministic, rule-based, and evidence-cited.
 - **Next Immediate Action (Stage 02):** Scaffold `agent/` Cargo workspace using `stable-x86_64-pc-windows-gnu` + `tokio` + `serde` + `sysinfo` + `windows` + `notify` + `sha2` + `reqwest` (`rustls-tls`) + `rusqlite` (`bundled`), implement portable collector traits and Windows collectors (process/network/filesystem/system/Sysmon-probe), plus a lightweight Stage 02 FastAPI ingest verification endpoint implementing `docs/contracts/TELEMETRY_SCHEMA.md`.
+
+---
+
+## Stage 02 — Rust Endpoint Sensor
+**Date:** 2026-11-26  
+**Milestone Status:** Complete  
+**Author / Operator:** Principal Engineering Agent + Dharm Patel (`DDharm007`)
+
+### 1. Summary of Work Completed
+1. **Rust Sensor Core (`agent/src/`):**
+   - [`config.rs`](../agent/src/config.rs): TOML + env config, non-loopback HTTP rejection guard, externalized `AgentState` persistence (no embedded credentials in binaries).
+   - [`models.rs`](../agent/src/models.rs): Normalized telemetry contracts (`TelemetryBatchRequest`, `TelemetryEventIn`, `ProcessPayload`, `NetworkPayload`, `FilesystemPayload`, `SystemPayload`, `HeartbeatRequest`) and deterministic `compute_dedup_hash` / `make_process_guid`.
+   - [`spool.rs`](../agent/src/spool.rs): Local SQLite WAL offline ring spool (`agent-spool.sqlite3`) with deduplication (`UNIQUE(dedup_hash)`) and informational-first bounded backpressure eviction.
+   - [`transport.rs`](../agent/src/transport.rs): HTTPS/TLS client (`reqwest` + `rustls`), custom CA bundle validation, `X-Payload-SHA256` digest headers, `429`/`503` `Retry-After` handling, and exponential backoff.
+   - [`main.rs`](../agent/src/main.rs): `enroll`, `status`, `collect-once`, and `run` commands with stderr structured JSON `tracing` logs, bounded channel backpressure, policy polling, and `Ctrl+C` flush shutdown.
+2. **Portable Collectors & Native Windows Implementation (`agent/src/collectors/`):**
+   - [`mod.rs`](../agent/src/collectors/mod.rs) & [`portable_fallback.rs`](../agent/src/collectors/portable_fallback.rs): OS-agnostic `ProcessCollector`, `NetworkCollector`, `SystemCollector`, `EventLogCollector` traits.
+   - [`windows.rs`](../agent/src/collectors/windows.rs): Real Windows process delta monitoring (PID/PPID, parent GUID correlation, executable SHA-256 cache, command lines, user context), Win32 `WinVerifyTrust` + `CryptCATAdmin*` Windows Catalog signature verification + signer subject extraction, Win32 IP Helper `GetExtendedTcpTable`/`GetExtendedUdpTable` (IPv4+IPv6 TCP/UDP sockets mapped to owning PID/process), CPU/RAM/disk/RSS metrics, `TokenElevation` probe, and honest `Microsoft-Windows-Sysmon/Operational` probe (`unavailable` when not installed).
+   - [`filesystem.rs`](../agent/src/collectors/filesystem.rs): `notify` (`ReadDirectoryChangesW`) filesystem watcher with `globset` exclusions, 750ms sliding-window deduplication, SHA-256 hashing, and PE Authenticode probing.
+3. **Stage 02 Ingestion Backend (`backend/app/`):**
+   - [`config.py`](../backend/app/config.py), [`db.py`](../backend/app/db.py), [`schemas.py`](../backend/app/schemas.py), [`services/ingest.py`](../backend/app/services/ingest.py), [`routers/agent.py`](../backend/app/routers/agent.py), [`main.py`](../backend/app/main.py), [`cli.py`](../backend/app/cli.py).
+   - Enforces single-use bootstrap token hashing, constant-time agent credential verification, payload SHA-256 integrity checks, secret redaction, and SQLite WAL persistence against Stage 01 DDL.
+4. **Setup Documentation:** [`docs/AGENT_SETUP.md`](AGENT_SETUP.md).
+
+### 2. Bugs Discovered & Resolved During Stage 02
+- **Windows Catalog Signatures:** Modern Windows 11 system binaries (`notepad.exe`, `powershell.exe`) use Windows Security Catalog signing rather than embedded PE PKCS7 blobs, initially returning `TRUST_E_NOSIGNATURE` under `WTD_CHOICE_FILE`. Implemented `CryptCATAdminCalcHashFromFileHandle` + `CryptCATAdminEnumCatalogFromHash` + `WTD_CHOICE_CATALOG` verification and `.cat` signer extraction.
+- **Structured Logging Stream Isolation:** `tracing_subscriber` initially wrote JSON logs to `stdout`, mixing logs with CLI JSON output. Redirected tracing output to `stderr`.
+- **Startup Latency on Initial Baseline:** Initial binary hashing/WinVerifyTrust sweep across ~250 live processes delayed first loop ticks; moved baseline snapshot before `tokio::select!` and tightened `fs_tick` to `300ms`.
+- **Self-Signed TLS Validation:** `rustls` rejected self-signed `ca=True` leaf certs; updated E2E test fixture to generate a proper Root CA + `ExtendedKeyUsage(SERVER_AUTH)` leaf cert.
+
+### 3. Tests Executed & Results
+- `cargo fmt --manifest-path agent\Cargo.toml --check`: **PASS**
+- `cargo clippy --manifest-path agent\Cargo.toml --all-targets -- -D warnings`: **PASS** (`0` warnings)
+- `cargo test --manifest-path agent\Cargo.toml`: **PASS** (`7` unit tests passed in `5.64s`, including live Windows process/socket/metric capture and `notepad.exe` catalog signature verification)
+- `cargo build --manifest-path agent\Cargo.toml`: **PASS**
+- `ruff check backend\app backend\tests`: **PASS** (`All checks passed!`)
+- `pytest backend\tests -v`: **PASS** (`3` passed in `28.40s`, including live HTTPS compiled Rust agent enrollment, `collect-once`, and live `ReadDirectoryChangesW` filesystem upload E2E)
+
+### 4. Handoff Summary -> Ready for Stage 03
+- **Stage 02 Gate Passed:** Compiled Rust sensor collects real Windows process, network, filesystem, and system telemetry and persists batches over verified HTTPS/TLS to the local SQLite WAL backend.
+- **Stage 03 Next Steps:** Implement `backend/app/detection/` modules: YARA-X scanner (`yara-x>=1.24`), EMBER static PE feature extractor & versioned classifier, FIM baseline/drift/signature engine, 8 windowed behavioral rules, policy-gated IOC intelligence, and transparent risk scoring (`severity` vs `confidence`).
